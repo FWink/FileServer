@@ -7,6 +7,9 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.FileProviders;
 
 namespace FileServer
@@ -41,10 +44,31 @@ namespace FileServer
         /// <returns></returns>
         protected internal async Task HandleDirectoyBrowsing(HttpContext httpContext)
         {
-            foreach(var file in GetDirectory(httpContext.Request))
+            //build and display the "BrowseDirectoriesPage"
+            var model = new BrowseDirectoriesPageModel();
+            model.Directory = GetDirectory(httpContext.Request);
+
+            var modelState = model.ModelState;
+
+            var metaDataProvider = httpContext.RequestServices.GetService(typeof(IModelMetadataProvider)) as IModelMetadataProvider;
+            var viewData = new Microsoft.AspNetCore.Mvc.ViewFeatures.ViewDataDictionary<BrowseDirectoriesPageModel>(metaDataProvider, modelState);
+
+            viewData.Model = model;
+
+            var context = new PageContext(new ActionContext(
+                httpContext,
+                new Microsoft.AspNetCore.Routing.RouteData(),
+                new Microsoft.AspNetCore.Mvc.Abstractions.ActionDescriptor(),
+                modelState));
+            model.PageContext = context;
+
+            var result = new ViewResult
             {
-                await httpContext.Response.WriteAsync(file.Name);
-            }
+                ViewName = "BrowseDirectoriesPage.cshtml",
+                ViewData = viewData
+            };
+
+            await result.ExecuteResultAsync(context);
         }
 
         /// <summary>

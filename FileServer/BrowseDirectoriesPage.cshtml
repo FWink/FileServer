@@ -1,0 +1,134 @@
+﻿@model FileServer.BrowseDirectoriesPageModel
+@{
+    string fileTypeSize;
+}
+<style type="text/css">
+    table tr th {
+        text-align: start;
+    }
+
+    .file-size {
+        text-align: end;
+    }
+
+    label {
+        display: block;
+    }
+
+    td:not(:first-child), th:not(:first-child) {
+        padding-left: 12px;
+    }
+
+    td,th {
+        padding-bottom: 4px;
+    }
+
+    .btn-select-bulk {
+        min-width: 60px;
+    }
+
+    .btn-submit {
+        min-width: 120px;
+    }
+
+</style>
+<form method="get" id="formFiles">
+    <h1>
+        @Model.HostName - @Model.DirectoryPath
+    </h1>
+    @if (Model.CanGoBack)
+    {
+    <p>
+        <a href="@Model.ParentDirectory">Back</a>
+    </p>
+    }
+    <table>
+        <tr>
+            <th>
+                Select
+            </th>
+            <th class="file-size">
+                Size
+            </th>
+            <th>
+                File
+            </th>
+        </tr>
+        @foreach (var file in Model.Directory)
+        {
+            <tr>
+                <td>
+                    <input type="checkbox" name="zip" value="@file.Name" id="@file.Name" class="file-zip-selection" />
+                </td>
+                <td class="file-size">
+                    @if(file.IsDirectory)
+                    {
+                        fileTypeSize = "<dir>";
+                    }
+                    else
+                    {
+                        fileTypeSize = file.Length.ToString();
+                    }
+                    <label for="@file.Name">
+                        @fileTypeSize
+                    </label>
+                </td>
+                <td>
+                    <a href="@Model.GetPath(file)">@file.Name</a>
+                </td>
+            </tr>
+        }
+        <tr>
+            <td colspan="2">
+                <button type="button" id="btnSelectAll" class="btn-select-bulk">All</button>
+                <button type="button" id="btnSelectNone" class="btn-select-bulk">None</button>
+            </td>
+            <td>
+                <input type="submit" value="Download" class="btn-submit" />
+            </td>
+        </tr>
+    </table>
+</form>
+<script type="text/javascript">
+    document.addEventListener("DOMContentLoaded", function () {
+
+        function getSelectedFiles() {
+            return document.querySelectorAll(".file-zip-selection:checked");
+        }
+
+        function filesSelected() {
+            return getSelectedFiles().length > 0;
+        }
+
+        document.getElementById("formFiles").addEventListener("submit", function (e) {
+
+            if (!filesSelected()) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                window.location += "?zip";
+
+                return;
+            }
+        });
+
+        function checkAll(checked) {
+            
+            var checkboxes = document.querySelectorAll(".file-zip-selection");
+            for (var i = 0; i < checkboxes.length; ++i) {
+                checkboxes[i].checked = checked;
+            }
+        }
+
+        document.getElementById("btnSelectAll").addEventListener("click", function () {
+
+            checkAll(true);
+        });
+
+        document.getElementById("btnSelectNone").addEventListener("click", function () {
+
+            checkAll(false);
+        });
+
+    });
+</script>

@@ -46,7 +46,7 @@ namespace FileServer
         /// <param name="filename"></param>
         protected internal void SetResponseFileName(HttpResponse response, string filename)
         {
-            response.Headers.Add("Content-Disposition", "attachment; filename=" + filename);
+            response.Headers.Add("Content-Disposition", "attachment; filename=" + Uri.EscapeDataString(filename));
         }
     }
 }

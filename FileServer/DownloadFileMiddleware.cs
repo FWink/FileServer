@@ -31,11 +31,17 @@ namespace FileServer
             }
         }
 
+        /// <summary>
+        /// Sends the requested file (<see cref="GetFile(HttpRequest)"/>) to the client via <see cref="HttpContext.Response"/>.
+        /// </summary>
+        /// <param name="httpContext"></param>
+        /// <returns></returns>
         protected internal async Task HandleFileDownload(HttpContext httpContext)
         {
             var file = GetFile(httpContext.Request);
 
             SetResponseFileName(httpContext.Response, file.Name);
+            httpContext.Response.ContentLength = file.Length;
             await httpContext.Response.SendFileAsync(file);
         }
 

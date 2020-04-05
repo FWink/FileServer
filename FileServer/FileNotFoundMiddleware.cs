@@ -20,7 +20,7 @@ namespace FileServer
         public Task Invoke(HttpContext httpContext)
         {
             httpContext.Response.StatusCode = 404;
-            return Task.FromResult(false);
+            return httpContext.Response.WriteAsync("404");
         }
     }
 

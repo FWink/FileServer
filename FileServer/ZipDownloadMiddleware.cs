@@ -4,6 +4,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -46,6 +47,7 @@ namespace FileServer
 
             if(files.Count == 1 && files.First().IsDirectory())
             {
+                //exactly one file is selected which is a directory => use that as root instead and select its children
                 var rootDirectory = files.First() as DirectoryInfo;
 
                 rootFile = rootDirectory;
@@ -62,11 +64,19 @@ namespace FileServer
             httpContext.Response.Headers.Add("Content-Type", "application/zip");
             using (var zipArchive = new ZipArchive(httpContext.Response.Body, ZipArchiveMode.Create))
             {
-                await WriteZippedFiles(zipArchive, root, files);
+                await WriteZippedFiles(zipArchive, root, files, httpContext.RequestAborted);
             }
         }
 
-        private async Task WriteZippedFiles(ZipArchive zipArchive, string relativeToPath, ICollection<FileSystemInfo> files)
+        /// <summary>
+        /// Recursively writes the given files (including plain files and directories with all their descendants) into the given ZIP archive.
+        /// No compression is applied.
+        /// </summary>
+        /// <param name="zipArchive"></param>
+        /// <param name="relativeToPath"></param>
+        /// <param name="files"></param>
+        /// <returns></returns>
+        private async Task WriteZippedFiles(ZipArchive zipArchive, string relativeToPath, ICollection<FileSystemInfo> files, CancellationToken cancellationToken)
         {
             foreach (var fileDirectoy in files)
             {
@@ -74,7 +84,7 @@ namespace FileServer
                 {
                     var directory = fileDirectoy as DirectoryInfo;
                     //write the entire directory recursively
-                    await WriteZippedFiles(zipArchive, relativeToPath, directory.GetChildren());
+                    await WriteZippedFiles(zipArchive, relativeToPath, directory.GetChildren(), cancellationToken);
                 }
                 else
                 {
@@ -84,7 +94,7 @@ namespace FileServer
                     using (var fileInput = file.OpenRead())
                     using (var fileOutput = fileEntry.Open())
                     {
-                        await fileInput.CopyToAsync(fileOutput);
+                        await fileInput.CopyToAsync(fileOutput, cancellationToken);
                     }
                 }
             }
