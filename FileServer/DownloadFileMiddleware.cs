@@ -42,7 +42,7 @@ namespace FileServer
 
             SetResponseFileName(httpContext.Response, file.Name);
             httpContext.Response.ContentLength = file.Length;
-            await httpContext.Response.SendFileAsync(file);
+            await httpContext.Response.SendFileAsync(file, httpContext.RequestAborted);
         }
 
         /// <summary>
