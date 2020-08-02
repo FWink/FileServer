@@ -39,7 +39,7 @@
     @if (Model.CanGoBack)
     {
     <p>
-        <a href="@Model.ParentDirectory">Back</a>
+        <a href="@Model.ParentDirectory" onclick="return onTryBack(event);">Back</a>
     </p>
     }
     <table>
@@ -129,6 +129,110 @@
 
             checkAll(false);
         });
-
     });
+
+    window.onpageshow = function () {
+
+        if (window.performance.navigation.type == PerformanceNavigation.TYPE_BACK_FORWARD) {
+            //check if we went forward or backward
+            var previous = this.navStackAt(-1);
+            if (previous) {
+                if (navStackLocationEquals(previous.location, window.location.href)) {
+                    //probably went one step back
+                    navStackPop();
+                }
+                else {
+                    //probably went forward
+                    navStackPush();
+                }
+            }
+            else {
+                //couldn't have gone back (probably)
+                navStackPush();
+            }
+        }
+        else {
+            //normal navigation
+            navStackPush();
+        }
+
+        console.log(this.navStackGet());
+    }
+
+    function onTryBack(ev) {
+        var previous = navStackAt(-1);
+        if (previous && navStackLocationEquals(previous.location, ev.target.href)) {
+            //do a browser popback
+            window.history.back();
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Pushes the browser's current location onto a navigation stack we build in the browser's
+     * session stack.
+     * Does nothing however, if the stack's top entry equals the current location.
+     */
+    function navStackPush() {
+
+        if (!navStackTopMatches()) {
+
+            var stack = navStackGet();
+
+            stack.push({
+                location: window.location.href
+            });
+            window.sessionStorage.setItem("navStack", JSON.stringify(stack));
+        }
+    }
+
+    /**
+     * Pops our navigation stack's topmost entry. Executed when the user navigates back
+     * (via the browser back button).
+     */
+    function navStackPop() {
+        var stack = navStackGet();
+        if (stack.length > 0) {
+            stack.pop();
+            window.sessionStorage.setItem("navStack", JSON.stringify(stack));
+        }
+    }
+
+    /**
+     * Returns the current navigation stack from the session storage.
+     */
+    function navStackGet() {
+        var stack = window.sessionStorage.getItem("navStack");
+        if (stack)
+            return JSON.parse(stack);
+        return [];
+    }
+
+    /**
+     * Returns true if the given locations (as taken from window.location.href) match.
+     */
+    function navStackLocationEquals(loc1, loc2) {
+        return loc1 == loc2 || (loc1 + "/") == loc2 || loc1 == (loc2 + "/");
+    }
+
+    /**
+     * Returns true if the current location matches the top of our nav stack.
+     */
+    function navStackTopMatches() {
+        var top = navStackAt(0);
+
+        return top && navStackLocationEquals(top.location, window.location.href);
+    }
+
+    function navStackAt(indexPrev) {
+        var stack = navStackGet();
+
+        if (stack.length > -indexPrev) {
+            return stack[stack.length + indexPrev - 1];
+        }
+
+        return null;
+    }
+
 </script>
