@@ -84,7 +84,7 @@
                 <button type="button" id="btnSelectNone" class="btn-select-bulk">None</button>
             </td>
             <td>
-                <input type="submit" value="Download" class="btn-submit" />
+                <a id="linkDownload"><button type="submit" class="btn-submit" id="btnSubmit">Download</button></a>
             </td>
         </tr>
     </table>
@@ -113,11 +113,35 @@
         });
 
         function checkAll(checked) {
-            
+
             var checkboxes = document.querySelectorAll(".file-zip-selection");
             for (var i = 0; i < checkboxes.length; ++i) {
                 checkboxes[i].checked = checked;
             }
+
+            onSelectedChanged();
+        }
+
+        function onSelectedChanged() {
+            document.getElementById("linkDownload").href = serializeForm();
+        }
+
+        function serializeForm() {
+
+            var selected = getSelectedFiles();
+            if (selected.length == 0) {
+                return "?zip";
+            }
+
+            var serialized = "?";
+            for (var i = 0; i < selected.length; ++i) {
+                if (serialized.length > 1)
+                    serialized += "&";
+
+                serialized += encodeURIComponent(selected[i].name) + "=" + encodeURIComponent(selected[i].value);
+            }
+
+            return serialized;
         }
 
         document.getElementById("btnSelectAll").addEventListener("click", function () {
@@ -129,6 +153,15 @@
 
             checkAll(false);
         });
+
+        var items = document.getElementsByClassName("file-zip-selection");
+        for (var i = 0; i < items.length; ++i) {
+            items[i].onchange = onSelectedChanged;
+        }
+
+        onSelectedChanged();
+
+        document.getElementById("btnSubmit").focus();
     });
 
     window.onpageshow = function () {
@@ -155,8 +188,6 @@
             //normal navigation
             navStackPush();
         }
-
-        console.log(this.navStackGet());
     }
 
     function onTryBack(ev) {
