@@ -46,7 +46,8 @@ namespace FileServer
         {
             //build and display the "BrowseDirectoriesPage"
             var model = new BrowseDirectoriesPageModel();
-            model.Directory = GetDirectory(httpContext.Request);
+            model.Directory = GetDirectory(httpContext.Request)
+                .OrderBy(file => file.Name);
 
             var modelState = model.ModelState;
 

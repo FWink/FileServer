@@ -17,7 +17,7 @@ namespace FileServer
         /// <summary>
         /// Input: the directory contents that we want to display.
         /// </summary>
-        public IDirectoryContents Directory
+        public IEnumerable<IFileInfo> Directory
         {
             get;
             set;
