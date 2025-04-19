@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -40,9 +41,53 @@ namespace FileServer
         {
             var file = GetFile(httpContext.Request);
 
+            //allow range requests to resume downloads
+            httpContext.Response.Headers.AcceptRanges = "bytes";
+
+            long offset = 0;
+            long? rangeSize = null;
+            long fileSize = file.Length;
+
+            var rangeRequest = httpContext.Request.GetTypedHeaders().Range;
+            if (rangeRequest is not null)
+            {
+                if (rangeRequest.Ranges.Count != 1)
+                {
+                    //single range requests only for now
+                    httpContext.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+                    return;
+                }
+
+                var range = rangeRequest.Ranges.First();
+                if (rangeRequest.Unit != "bytes" || !range.From.HasValue || range.From.Value < 0)
+                {
+                    httpContext.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+                    return;
+                }
+
+                offset = range.From.Value;
+                if (offset >= fileSize)
+                {
+                    httpContext.Response.StatusCode = (int)HttpStatusCode.RequestedRangeNotSatisfiable;
+                    return;
+                }
+
+                if (!range.To.HasValue || range.To.Value >= fileSize)
+                {
+                    rangeSize = fileSize - offset;
+                }
+                else
+                {
+                    rangeSize = range.To.Value - offset + 1;
+                }
+
+                httpContext.Response.GetTypedHeaders().ContentRange = new(offset, offset + rangeSize.Value - 1, fileSize);
+                httpContext.Response.StatusCode = (int)HttpStatusCode.PartialContent;
+            }
+
             SetResponseFileName(httpContext.Response, file.Name);
-            httpContext.Response.ContentLength = file.Length;
-            await httpContext.Response.SendFileAsync(file, httpContext.RequestAborted);
+            httpContext.Response.ContentLength = rangeSize ?? file.Length;
+            await httpContext.Response.SendFileAsync(file, offset, rangeSize, httpContext.RequestAborted);
         }
 
         /// <summary>
